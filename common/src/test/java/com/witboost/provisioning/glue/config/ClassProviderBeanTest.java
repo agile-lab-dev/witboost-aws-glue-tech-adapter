@@ -1,6 +1,6 @@
 package com.witboost.provisioning.glue.config;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.witboost.provisioning.glue.model.GlueSpecific;
 import com.witboost.provisioning.model.Workload;
@@ -17,7 +17,6 @@ class ClassProviderBeanTest {
     @Test
     void defaultSpecificProvider() {
         var specificProvider = classProviderBean.specificClassProvider();
-
         assertEquals(Option.of(GlueSpecific.class), specificProvider.get("a-urn"));
         assertEquals(Option.of(GlueSpecific.class), specificProvider.getReverseProvisioningParams("a-urn"));
     }
@@ -25,7 +24,6 @@ class ClassProviderBeanTest {
     @Test
     void defaultComponentProvider() {
         var componentProvider = classProviderBean.componentClassProvider();
-
         assertEquals(Option.some(Workload.class), componentProvider.get("whatever"));
     }
 }

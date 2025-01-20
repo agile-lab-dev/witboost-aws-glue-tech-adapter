@@ -1,0 +1,42 @@
+dataProduct:
+  dataProductOwnerDisplayName: Carlo Ventrella
+  devGroup: bigdata
+  environment: development
+  description: asdasd
+  billing: {}
+  kind: dataproduct
+  specific: {}
+  domain: finance
+  name: testMultiModule
+  version: 0.1.0-SNAPSHOT-2
+  components:
+    - name: bk
+      fullyQualifiedName: gluejob-0
+      description: job description
+      kind: workload
+      id: urn:dmb:cmp:gluejob-0
+      infrastructureTemplateId: urn:dmb:itm:glue-sp:0
+      dependsOn: []
+      specific:
+        region: eu-unknown-1
+        scriptLocation: s3://gluetechadaptertest/helloworld.py
+        iamRole: arn:aws:iam::123456:role/gluetechadaptertest-role
+        timeout: 1
+        workerType: G.1Y
+        executionClass: BOTTLE
+        numberOfWorkers: 2
+      useCaseTemplateId: useCaseTemplateId1
+      componentOwner: agilelab
+      version: 0.0.0
+  dataProductOwner: user:carlo.ventrella_agilelab.it
+  fullyQualifiedName: aasdasd
+  infrastructureTemplateId: urn:dmb:itm:dataproduct-provisioner:1
+  maturity: null
+  domainId: urn:dmb:dmn:finance
+  tags: []
+  ownerGroup: carlo.ventrella_agilelab.it
+  useCaseTemplateId: urn:dmb:utm:dataproduct-template:0.0.0
+  id: urn:dmb:dp:finance:testmultimodule:0
+  email: carlo.ventrella@agilelab.it
+  informationSLA: null
+componentIdToProvision: urn:dmb:cmp:gluejob-0
