@@ -36,8 +36,10 @@ public class ConfigurationBean {
 
     @Bean
     public WorkloadProvisionService workloadProvisionService(
-            ObjectProvider<GlueClient> glueClientObjectProvider, GlueJobClientWrapper glueJobClientWrapper) {
-        return new WorkloadProvisionService(glueClientObjectProvider, glueJobClientWrapper);
+            ObjectProvider<GlueClient> glueClientObjectProvider,
+            ObjectProvider<S3Client> s3ClientObjectProvider,
+            GlueJobClientWrapper glueJobClientWrapper) {
+        return new WorkloadProvisionService(glueClientObjectProvider, s3ClientObjectProvider, glueJobClientWrapper);
     }
 
     @Bean
@@ -48,9 +50,8 @@ public class ConfigurationBean {
     }
 
     @Bean
-    public WorkloadValidationService workloadValidationService(
-            ObjectProvider<S3Client> s3ClientObjectProvider, GlueJobClientWrapper glueJobClientWrapper) {
-        return new WorkloadValidationService(s3ClientObjectProvider, glueJobClientWrapper);
+    public WorkloadValidationService workloadValidationService() {
+        return new WorkloadValidationService();
     }
 
     @Bean

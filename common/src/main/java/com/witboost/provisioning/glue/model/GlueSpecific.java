@@ -13,7 +13,7 @@ import software.amazon.awssdk.services.glue.model.WorkerType;
 
 public class GlueSpecific extends Specific {
 
-    private String scriptLocation;
+    private String scriptName;
     private String iamRole; // This can actually be set at DP level
     private Optional<Integer> timeout;
     private String region;
@@ -21,10 +21,12 @@ public class GlueSpecific extends Specific {
     private String executionClass;
     private Integer numberOfWorkers;
 
+    private String storageAreaId;
+
     public GlueSpecific() {}
 
-    public String getScriptLocation() {
-        return scriptLocation;
+    public String getScriptName() {
+        return scriptName;
     }
 
     public String getIamRole() {
@@ -50,14 +52,17 @@ public class GlueSpecific extends Specific {
     public Integer getNumberOfWorkers() {
         return numberOfWorkers;
     }
-    ;
+
+    public String getStorageAreaId() {
+        return storageAreaId;
+    }
 
     public void setIamRole(String iamRole) {
         this.iamRole = iamRole;
     }
 
-    public void setScriptLocation(String scriptLocation) {
-        this.scriptLocation = scriptLocation;
+    public void setScriptName(String scriptName) {
+        this.scriptName = scriptName;
     }
 
     public void setTimeout(Optional<Integer> timeout) {
@@ -78,6 +83,10 @@ public class GlueSpecific extends Specific {
 
     public void setNumberOfWorkers(Integer numberOfWorkers) {
         this.numberOfWorkers = numberOfWorkers;
+    }
+
+    public void setStorageAreaId(String storageAreaId) {
+        this.storageAreaId = storageAreaId;
     }
 
     /**

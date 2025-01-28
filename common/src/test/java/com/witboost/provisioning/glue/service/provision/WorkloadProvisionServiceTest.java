@@ -34,7 +34,6 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.ObjectProvider;
-import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glue.GlueClient;
 import software.amazon.awssdk.services.glue.model.ExecutionClass;
 import software.amazon.awssdk.services.glue.model.GlueException;
@@ -55,10 +54,7 @@ class WorkloadProvisionServiceTest {
     private GlueJobClientWrapper glueJobClientWrapper;
 
     @Mock
-    private ObjectProvider<GlueClient> glueClientProvider;
-
-    @Mock
-    private GlueClient glueClient;
+    private ObjectProvider<Object> genericProvider;
 
     ClassProviderBean classProviderBean = new ClassProviderBean();
 
@@ -128,7 +124,6 @@ class WorkloadProvisionServiceTest {
                         any(ExecutionClass.class),
                         anyString());
 
-        when(glueClientProvider.getObject(any(Region.class))).thenReturn(glueClient);
         var res = workloadProvisionService.provision(opReq);
 
         assertTrue(res.isRight());
@@ -163,7 +158,6 @@ class WorkloadProvisionServiceTest {
                         any(ExecutionClass.class),
                         anyString());
 
-        when(glueClientProvider.getObject(any(Region.class))).thenReturn(glueClient);
         var res = workloadProvisionService.provision(opReq);
 
         assertTrue(res.isLeft());
@@ -188,7 +182,6 @@ class WorkloadProvisionServiceTest {
 
         Mockito.doNothing().when(glueJobClientWrapper).deleteJob(any(), anyString());
 
-        when(glueClientProvider.getObject(any(Region.class))).thenReturn(glueClient);
         var res = workloadProvisionService.unprovision(opReq);
 
         assertTrue(res.isRight());
@@ -217,10 +210,101 @@ class WorkloadProvisionServiceTest {
                 .when(glueJobClientWrapper)
                 .deleteJob(any(), anyString());
 
-        when(glueClientProvider.getObject(any(Region.class))).thenReturn(glueClient);
-
         var res = workloadProvisionService.unprovision(opReq);
 
         assertTrue(res.isLeft());
+    }
+
+    @Test
+    void validateBadLocation0() throws IOException {
+
+        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
+        ValidationServiceImpl service = new ValidationServiceImpl(
+                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+
+        Mockito.doNothing()
+                .when(glueJobClientWrapper)
+                .createJob(
+                        any(GlueClient.class),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        Mockito.any(Optional.class),
+                        Mockito.any(WorkerType.class),
+                        Mockito.anyInt(),
+                        Mockito.any(ExecutionClass.class),
+                        anyString());
+
+        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(false);
+
+        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
+        ProvisioningRequest provisioningRequest =
+                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
+        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
+
+        var opReq = req.get();
+
+        var res = workloadProvisionService.provision(opReq);
+
+        assertTrue(res.isLeft());
+
+        var fail = res.getLeft();
+        assertEquals(1, fail.problems().size());
+        assertEquals(
+                "The S3 script location does not exist", fail.problems().get(0).getMessage());
+    }
+
+    @Test
+    void validateBadLocation1() throws IOException {
+
+        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
+        ValidationServiceImpl service = new ValidationServiceImpl(
+                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+
+        when(glueJobClientWrapper.checkLocation(any(), anyString()))
+                .thenThrow(new RuntimeException("Some very bad exception"));
+
+        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
+        ProvisioningRequest provisioningRequest =
+                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
+        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
+        var opReq = req.get();
+
+        var res = workloadProvisionService.provision(opReq);
+        assertTrue(res.isLeft());
+
+        var fail = res.getLeft();
+
+        assertEquals(1, fail.problems().size());
+        assertEquals(
+                "An unexpected error occurred while validating the script location: Some very bad exception",
+                fail.problems().get(0).getMessage());
+    }
+
+    @Test
+    void provisionBadDescriptor1() throws IOException {
+
+        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
+        ValidationServiceImpl service = new ValidationServiceImpl(
+                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+
+        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_bad1.yml");
+        ProvisioningRequest provisioningRequest =
+                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
+
+        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
+
+        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
+        var opReq = req.get();
+
+        var res = workloadProvisionService.provision(opReq);
+
+        assertTrue(res.isLeft());
+        var fail = res.getLeft();
+
+        assertEquals(1, fail.problems().size());
+        assertEquals(
+                "The specific.storageAreaId field does not match any component in the descriptor",
+                fail.problems().get(0).getMessage());
     }
 }

@@ -25,12 +25,18 @@ The logic of the job is contained in a script file placed in a S3 location, stor
 
 #### Validate
 This tech adapter interacts with Glue creating a Glue Job, so the validation checks that the descriptor contains the values needed to properly create the job definition.
-This step must also check that the script file is existing in the defined S3 location.
 
 #### Provision
 The provisioning phase creates the Job if it doesn't exist, or it updates it.
 
 ![HLD-Glue Job - provisioning.png](img/HLD-Glue%20Job%20-%20provisioning.png)
+
+**Storage component dependency**
+
+The job script location is the composition of the `script base path` and the `script name`. The name is part of the descriptor, the base path instead is extracted from the dependant s3 storage component.
+The S3 storage component outputs (in the privateInfo) the s3 location where the script will be pushed.
+That value is extracted at provisioning time in order to assembly the script location full path.
+For the same reason, the script location full path cannot be checked at validation time.
 
 **Naming Convention**
 
