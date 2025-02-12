@@ -87,8 +87,10 @@ public class WorkloadProvisionService implements ProvisionService {
                     List.of(new Problem("Missing location at info.privateInfo.location.value"))));
         }
 
+        // Assembly warehouse location
+        String scriptLocation = scriptBasePath.get() + "/" + specific.getScriptName();
         // Assembly and validate script location
-        String scriptLocation = scriptBasePath + "/" + specific.getScriptName();
+        String warehouseLocation = scriptBasePath.get() + "/" + specific.getWarehouseLocation();
 
         S3Client s3Client = s3ClientProvider.getObject(specific.getRegion());
 
@@ -120,7 +122,9 @@ public class WorkloadProvisionService implements ProvisionService {
                     specific.getWorkerType(),
                     specific.getNumberOfWorkers(),
                     specific.getExecutionClass(),
-                    component.getDescription());
+                    component.getDescription(),
+                    specific.getCatalogName(),
+                    warehouseLocation);
         } catch (Exception e) {
             return Either.left(new FailedOperation(
                     "Job creation failed",

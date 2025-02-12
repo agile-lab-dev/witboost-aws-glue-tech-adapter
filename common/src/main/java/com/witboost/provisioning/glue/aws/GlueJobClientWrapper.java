@@ -2,7 +2,9 @@ package com.witboost.provisioning.glue.aws;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,8 @@ public class GlueJobClientWrapper {
      * @param scriptLocation the S3 script location
      * @param timeout Job timeout, optionally
      * @param description Job description
+     * @param catalogName the catalog name, default is `glue_catalog`
+     * @param warehouseLocation catalog warehouse location
      */
     public void createJob(
             GlueClient glueClient,
@@ -44,13 +48,38 @@ public class GlueJobClientWrapper {
             WorkerType workerType,
             Integer numberOfWorkers,
             ExecutionClass executionClass,
-            String description) {
+            String description,
+            String catalogName,
+            String warehouseLocation) {
 
         JobCommand command = JobCommand.builder()
                 .pythonVersion("3")
                 .name("glueetl")
                 .scriptLocation(scriptLocation)
                 .build();
+
+        // Set up job parameters
+        Map<String, String> defaultArguments = new HashMap<>();
+
+        // Add Spark configuration parameters
+        defaultArguments.put(
+                "--conf",
+                "spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions"
+                        + " --conf spark.sql.catalog.glue_catalog.io-impl=org.apache.iceberg.aws.s3.S3FileIO"
+                        + " --conf spark.sql.catalog.glue_catalog=org.apache.iceberg.spark.SparkCatalog"
+                        + " --conf spark.sql.catalog.glue_catalog.warehouse="
+                        + warehouseLocation
+                        + " --conf spark.sql.catalog.glue_catalog.catalog-impl=org.apache.iceberg.aws.glue.GlueCatalog"
+                        + " --conf spark.sql.defaultCatalog="
+                        + catalogName);
+        defaultArguments.put("--datalake-formats", "iceberg");
+
+        // Common Glue job parameters
+        defaultArguments.put("--enable-job-insights", "true");
+        defaultArguments.put("--enable-metrics", "true");
+        defaultArguments.put("--enable-continuous-cloudwatch-log", "true");
+        defaultArguments.put("--job-language", "python");
+        defaultArguments.put("--enable-spark-ui", "true");
 
         if (!doesJobExist(glueClient, jobName)) {
 
@@ -66,6 +95,7 @@ public class GlueJobClientWrapper {
                     .executionClass(executionClass)
                     .role(iam)
                     .command(command)
+                    .defaultArguments(defaultArguments)
                     .build();
             glueClient.createJob(jobRequest);
 
@@ -82,6 +112,7 @@ public class GlueJobClientWrapper {
                     .executionClass(executionClass)
                     .role(iam)
                     .command(command)
+                    .defaultArguments(defaultArguments)
                     .build();
 
             UpdateJobRequest jobRequest = UpdateJobRequest.builder()

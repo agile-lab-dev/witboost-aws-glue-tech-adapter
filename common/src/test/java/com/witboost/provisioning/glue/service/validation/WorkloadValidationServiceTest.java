@@ -2,87 +2,86 @@ package com.witboost.provisioning.glue.service.validation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.witboost.provisioning.framework.openapi.model.DescriptorKind;
 import com.witboost.provisioning.framework.openapi.model.ProvisioningRequest;
-import com.witboost.provisioning.framework.service.validation.ValidationServiceImpl;
-import com.witboost.provisioning.glue.config.ClassProviderBean;
-import com.witboost.provisioning.glue.config.ConfigurationBean;
 import com.witboost.provisioning.glue.util.ResourceUtils;
-import com.witboost.provisioning.model.OperationType;
-import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.ObjectProvider;
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
-/*
- * TODO Review these tests after you have implemented the tech adapter logic
- */
+@SpringBootTest
+@AutoConfigureMockMvc
 class WorkloadValidationServiceTest {
 
-    @Mock
-    private ObjectProvider<S3Client> s3ClientProvider;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @Mock
-    private S3Client s3Client;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    ClassProviderBean classProviderBean = new ClassProviderBean();
+    private final String mockValidateEndpoint = "http://127.0.0.1:8888/v1/validate";
 
     @BeforeEach
     public void init() {
         MockitoAnnotations.openMocks(this);
     }
 
-    @InjectMocks
-    private WorkloadValidationService workloadValidationService;
-
     @Test
-    void validateCorrectDescriptor0() throws IOException {
-
-        when(s3ClientProvider.getObject(any(Region.class))).thenReturn(s3Client);
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+    void validateCorrectDescriptor0() throws Exception {
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
 
-        assertTrue(req.isRight());
+        MvcResult result = mockMvc.perform(post(mockValidateEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
+
+        assertEquals(200, result.getResponse().getStatus());
     }
 
     @Test
-    void validateBadDescriptor0() throws IOException {
-
-        when(s3ClientProvider.getObject(any(Region.class))).thenReturn(s3Client);
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+    void validateBadDescriptor0() throws Exception {
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_bad0.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
 
-        assertTrue(req.isLeft());
-        var fail = req.getLeft();
+        MvcResult result = mockMvc.perform(post(mockValidateEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
 
-        assertEquals(3, fail.problems().size());
-        assertEquals(
-                "The specified executionClass is unknown",
-                fail.problems().get(0).getMessage());
-        assertEquals(
-                "The specified workerType is unknown", fail.problems().get(1).getMessage());
-        assertEquals("The specified region is unknown", fail.problems().get(2).getMessage());
+        var response = result.getResponse();
+        var responseContent = response.getContentAsString();
+        assertTrue(responseContent.contains("The specified workerType is unknown"));
+        assertTrue(responseContent.contains("The specified region is unknown"));
+    }
+
+    @Test
+    public void validateBadDescriptor2() throws Exception {
+        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_bad2.yml");
+
+        ProvisioningRequest provisioningRequest =
+                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
+
+        MvcResult result = mockMvc.perform(post(mockValidateEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
+
+        assertEquals(400, result.getResponse().getStatus());
+        String responseContent = result.getResponse().getContentAsString();
+        assertTrue(responseContent.contains("warehouseLocation must not be blank"));
     }
 }

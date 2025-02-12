@@ -6,34 +6,35 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.witboost.provisioning.framework.openapi.model.DescriptorKind;
 import com.witboost.provisioning.framework.openapi.model.ProvisioningRequest;
-import com.witboost.provisioning.framework.service.validation.ValidationServiceImpl;
 import com.witboost.provisioning.glue.aws.GlueJobClientWrapper;
-import com.witboost.provisioning.glue.config.ClassProviderBean;
-import com.witboost.provisioning.glue.config.ConfigurationBean;
-import com.witboost.provisioning.glue.service.validation.WorkloadValidationService;
 import com.witboost.provisioning.glue.util.ResourceUtils;
 import com.witboost.provisioning.model.DataProduct;
-import com.witboost.provisioning.model.OperationType;
 import com.witboost.provisioning.model.Specific;
 import com.witboost.provisioning.model.Workload;
 import com.witboost.provisioning.model.common.FailedOperation;
 import com.witboost.provisioning.model.common.Problem;
 import com.witboost.provisioning.model.request.AccessControlOperationRequest;
 import com.witboost.provisioning.model.request.ReverseProvisionOperationRequest;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
-import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import software.amazon.awssdk.services.glue.GlueClient;
 import software.amazon.awssdk.services.glue.model.ExecutionClass;
 import software.amazon.awssdk.services.glue.model.GlueException;
@@ -42,21 +43,24 @@ import software.amazon.awssdk.services.glue.model.WorkerType;
 /*
  * TODO Review these tests after you have implemented the tech adapter logic
  */
+@SpringBootTest
+@AutoConfigureMockMvc
 class WorkloadProvisionServiceTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private final String mockProvisionEndpoint = "http://127.0.0.1:8888/v1/provision";
+    private final String mockUnprovisionEndpoint = "http://127.0.0.1:8888/v1/unprovision";
 
     @InjectMocks
     private WorkloadProvisionService workloadProvisionService;
 
-    @InjectMocks
-    private WorkloadValidationService workloadValidationService;
-
-    @Mock
+    @MockBean
     private GlueJobClientWrapper glueJobClientWrapper;
-
-    @Mock
-    private ObjectProvider<Object> genericProvider;
-
-    ClassProviderBean classProviderBean = new ClassProviderBean();
 
     @BeforeEach
     public void init() {
@@ -96,21 +100,9 @@ class WorkloadProvisionServiceTest {
     }
 
     @Test
-    void provisionCorrectDescriptor0() throws IOException {
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
-
-        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
-        ProvisioningRequest provisioningRequest =
-                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
+    void provisionCorrectDescriptor0() throws Exception {
 
         when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
-
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
-        var opReq = req.get();
-
         Mockito.doNothing()
                 .when(glueJobClientWrapper)
                 .createJob(
@@ -122,29 +114,26 @@ class WorkloadProvisionServiceTest {
                         any(WorkerType.class),
                         Mockito.anyInt(),
                         any(ExecutionClass.class),
+                        anyString(),
+                        anyString(),
                         anyString());
-
-        var res = workloadProvisionService.provision(opReq);
-
-        assertTrue(res.isRight());
-    }
-
-    @Test
-    void provisionCorrectDescriptor1() throws IOException {
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
 
+        MvcResult result = mockMvc.perform(post(mockProvisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
+
+        assertTrue(result.getResponse().getStatus() == 200);
+    }
+
+    @Test
+    void provisionCorrectDescriptor1() throws Exception {
+
         when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
-
-        var opReq = req.get();
-
         Mockito.doThrow(GlueException.builder().message("Some glue exception").build())
                 .when(glueJobClientWrapper)
                 .createJob(
@@ -156,53 +145,46 @@ class WorkloadProvisionServiceTest {
                         any(WorkerType.class),
                         Mockito.anyInt(),
                         any(ExecutionClass.class),
+                        anyString(),
+                        anyString(),
                         anyString());
 
-        var res = workloadProvisionService.provision(opReq);
-
-        assertTrue(res.isLeft());
-        assertEquals("Some glue exception", res.getLeft().problems().get(0).description());
-    }
-
-    @Test
-    void unprovisionCorrectDescriptor0() throws IOException {
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
-
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
 
-        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
+        MvcResult result = mockMvc.perform(post(mockProvisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
 
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
-        var opReq = req.get();
+        assertTrue(result.getResponse().getContentAsString().contains("Some glue exception"));
+    }
+
+    @Test
+    void unprovisionCorrectDescriptor0() throws Exception {
 
         Mockito.doNothing().when(glueJobClientWrapper).deleteJob(any(), anyString());
-
-        var res = workloadProvisionService.unprovision(opReq);
-
-        assertTrue(res.isRight());
-    }
-
-    @Test
-    void unprovisionCorrectDescriptor1() throws IOException {
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
+
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
 
+        MvcResult result = mockMvc.perform(post(mockUnprovisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
+
+        var response = result.getResponse();
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void unprovisionCorrectDescriptor1() throws Exception {
+
         when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
-
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
-        var opReq = req.get();
-
         doThrow(GlueException.builder()
                         .message("Some bad error message")
                         .cause(new RuntimeException(""))
@@ -210,18 +192,25 @@ class WorkloadProvisionServiceTest {
                 .when(glueJobClientWrapper)
                 .deleteJob(any(), anyString());
 
-        var res = workloadProvisionService.unprovision(opReq);
+        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
+        ProvisioningRequest provisioningRequest =
+                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
 
-        assertTrue(res.isLeft());
+        MvcResult result = mockMvc.perform(post(mockUnprovisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
+
+        var response = result.getResponse();
+
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString().contains("Some bad error message"));
     }
 
     @Test
-    void validateBadLocation0() throws IOException {
+    void validateBadLocation0() throws Exception {
 
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
-
+        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(false);
         Mockito.doNothing()
                 .when(glueJobClientWrapper)
                 .createJob(
@@ -233,33 +222,27 @@ class WorkloadProvisionServiceTest {
                         Mockito.any(WorkerType.class),
                         Mockito.anyInt(),
                         Mockito.any(ExecutionClass.class),
+                        anyString(),
+                        anyString(),
                         anyString());
-
-        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(false);
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
 
-        var opReq = req.get();
+        MvcResult result = mockMvc.perform(post(mockProvisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
 
-        var res = workloadProvisionService.provision(opReq);
+        var response = result.getResponse();
 
-        assertTrue(res.isLeft());
-
-        var fail = res.getLeft();
-        assertEquals(1, fail.problems().size());
-        assertEquals(
-                "The S3 script location does not exist", fail.problems().get(0).getMessage());
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString().contains("The S3 script location does not exist"));
     }
 
     @Test
-    void validateBadLocation1() throws IOException {
-
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+    void validateBadLocation1() throws Exception {
 
         when(glueJobClientWrapper.checkLocation(any(), anyString()))
                 .thenThrow(new RuntimeException("Some very bad exception"));
@@ -267,44 +250,37 @@ class WorkloadProvisionServiceTest {
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
-        var opReq = req.get();
 
-        var res = workloadProvisionService.provision(opReq);
-        assertTrue(res.isLeft());
+        MvcResult result = mockMvc.perform(post(mockProvisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
 
-        var fail = res.getLeft();
+        var response = result.getResponse();
 
-        assertEquals(1, fail.problems().size());
-        assertEquals(
-                "An unexpected error occurred while validating the script location: Some very bad exception",
-                fail.problems().get(0).getMessage());
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString()
+                .contains(
+                        "An unexpected error occurred while validating the script location: Some very bad exception"));
     }
 
     @Test
-    void provisionBadDescriptor1() throws IOException {
+    void provisionBadDescriptor1() throws Exception {
 
-        var bean = new ConfigurationBean().validationConfiguration(workloadValidationService);
-        ValidationServiceImpl service = new ValidationServiceImpl(
-                bean, classProviderBean.componentClassProvider(), classProviderBean.specificClassProvider());
+        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_bad1.yml");
         ProvisioningRequest provisioningRequest =
                 new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
 
-        when(glueJobClientWrapper.checkLocation(any(), anyString())).thenReturn(true);
+        MvcResult result = mockMvc.perform(post(mockProvisionEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
 
-        var req = service.validate(provisioningRequest, OperationType.VALIDATE);
-        var opReq = req.get();
-
-        var res = workloadProvisionService.provision(opReq);
-
-        assertTrue(res.isLeft());
-        var fail = res.getLeft();
-
-        assertEquals(1, fail.problems().size());
-        assertEquals(
-                "The specific.storageAreaId field does not match any component in the descriptor",
-                fail.problems().get(0).getMessage());
+        var response = result.getResponse();
+        assertEquals(400, response.getStatus());
+        assertTrue(response.getContentAsString()
+                .contains("The specific.storageAreaId field does not match any component in the descriptor"));
     }
 }

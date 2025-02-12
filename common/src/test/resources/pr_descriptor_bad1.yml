@@ -26,6 +26,8 @@ dataProduct:
         executionClass: FLEX
         numberOfWorkers: 2
         storageAreaId: urn:dmb:cmp:finance:exchange:0:raw-storage-doesntexist
+        catalogName: glue_catalog
+        warehouseLocation: s3://some/warehouse/location
       useCaseTemplateId: useCaseTemplateId1
       componentOwner: agilelab
       version: 0.0.0

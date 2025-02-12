@@ -4,42 +4,50 @@ import static io.vavr.control.Either.right;
 
 import com.witboost.provisioning.model.Specific;
 import io.vavr.control.Either;
+import jakarta.validation.constraints.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.glue.model.ExecutionClass;
 import software.amazon.awssdk.services.glue.model.WorkerType;
 
+@NoArgsConstructor
+@Getter
+@Setter
 public class GlueSpecific extends Specific {
 
+    @NotBlank
     private String scriptName;
+
+    @NotBlank
     private String iamRole; // This can actually be set at DP level
+
     private Optional<Integer> timeout;
+
+    @NotBlank
     private String region;
+
+    @NotBlank
     private String workerType;
+
+    @NotBlank
     private String executionClass;
+
+    @Positive
     private Integer numberOfWorkers;
 
+    @NotBlank
+    private String catalogName;
+
+    @NotBlank
+    private String warehouseLocation;
+
+    @NotBlank
     private String storageAreaId;
-
-    public GlueSpecific() {}
-
-    public String getScriptName() {
-        return scriptName;
-    }
-
-    public String getIamRole() {
-        return iamRole;
-    }
-
-    public Optional<Integer> getTimeout() {
-        return timeout;
-    }
-
-    public Region getRegion() {
-        return Region.of(region);
-    }
 
     public WorkerType getWorkerType() {
         return WorkerType.fromValue(workerType);
@@ -49,44 +57,8 @@ public class GlueSpecific extends Specific {
         return ExecutionClass.fromValue(executionClass);
     }
 
-    public Integer getNumberOfWorkers() {
-        return numberOfWorkers;
-    }
-
-    public String getStorageAreaId() {
-        return storageAreaId;
-    }
-
-    public void setIamRole(String iamRole) {
-        this.iamRole = iamRole;
-    }
-
-    public void setScriptName(String scriptName) {
-        this.scriptName = scriptName;
-    }
-
-    public void setTimeout(Optional<Integer> timeout) {
-        this.timeout = timeout;
-    }
-
-    public void setRegion(String region) {
-        this.region = region;
-    }
-
-    public void setWorkerType(String workerType) {
-        this.workerType = workerType;
-    }
-
-    public void setExecutionClass(String executionClass) {
-        this.executionClass = executionClass;
-    }
-
-    public void setNumberOfWorkers(Integer numberOfWorkers) {
-        this.numberOfWorkers = numberOfWorkers;
-    }
-
-    public void setStorageAreaId(String storageAreaId) {
-        this.storageAreaId = storageAreaId;
+    public Region getRegion() {
+        return Region.of(region);
     }
 
     /**

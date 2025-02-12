@@ -11,6 +11,7 @@ import com.witboost.provisioning.model.common.Problem;
 import com.witboost.provisioning.model.request.OperationRequest;
 import io.vavr.control.Either;
 import jakarta.validation.Valid;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -35,7 +36,11 @@ public class WorkloadValidationService implements ComponentValidationService {
                     List.of(new Problem(" The component descriptor is empty"))));
 
         component = operationRequest.getComponent().get();
-        GlueSpecific specific = (GlueSpecific) component.getSpecific();
+
+        if (!(component.getSpecific() instanceof @Valid GlueSpecific specific)) {
+            String error = String.format("Invalid Specific type of %s. Expected GlueSpecific.", component.getName());
+            return Either.left(new FailedOperation(error, Collections.singletonList(new Problem(error))));
+        }
 
         Either<List<String>, Void> t = specific.isValid();
         if (t.isLeft()) {

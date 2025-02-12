@@ -50,7 +50,9 @@ public class GlueJobClientWrapperTest {
                 WorkerType.G_1_X,
                 2,
                 ExecutionClass.STANDARD,
-                "some description");
+                "some description",
+                "cname",
+                "s3://..");
     }
 
     @Test
@@ -74,7 +76,9 @@ public class GlueJobClientWrapperTest {
                 WorkerType.G_1_X,
                 2,
                 ExecutionClass.STANDARD,
-                "some description");
+                "some description",
+                "cname",
+                "s3://..");
     }
 
     @Test
