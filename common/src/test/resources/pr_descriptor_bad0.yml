@@ -28,6 +28,8 @@ dataProduct:
         storageAreaId: urn:dmb:cmp:finance:exchange:0:raw-storage
         catalogName: glue_catalog
         warehouseLocation: s3://some/warehouse/location
+        additionalJobParameters: []
+        additionalSparkProperties: []
       useCaseTemplateId: useCaseTemplateId1
       componentOwner: agilelab
       version: 0.0.0

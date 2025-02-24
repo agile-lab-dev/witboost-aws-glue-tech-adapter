@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.Collections;
-import java.util.Optional;
+import com.witboost.provisioning.glue.model.JobParameters;
+import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -52,7 +52,9 @@ public class GlueJobClientWrapperTest {
                 ExecutionClass.STANDARD,
                 "some description",
                 "cname",
-                "s3://..");
+                "s3://..",
+                new ArrayList<>(),
+                new ArrayList<>());
     }
 
     @Test
@@ -78,7 +80,9 @@ public class GlueJobClientWrapperTest {
                 ExecutionClass.STANDARD,
                 "some description",
                 "cname",
-                "s3://..");
+                "s3://..",
+                new ArrayList<>(),
+                new ArrayList<>());
     }
 
     @Test
@@ -117,5 +121,46 @@ public class GlueJobClientWrapperTest {
         assertThrows(RuntimeException.class, () -> {
             wrapper.checkLocation(s3Client, "s3://some-location/path.py");
         });
+    }
+
+    @Test
+    public void prepareJobParameters0() {
+
+        GlueJobClientWrapper wrapper = new GlueJobClientWrapper();
+
+        List<JobParameters> additionalJobParameters = new ArrayList<>();
+        List<JobParameters> additionalSparkProperties = new ArrayList<>();
+
+        additionalJobParameters.add(new JobParameters("--foo", "bar"));
+        additionalJobParameters.add(new JobParameters("--fiz", "biz"));
+        additionalJobParameters.add(new JobParameters("--enable-metrics", "false"));
+
+        Map<String, String> params = wrapper.prepareJobParameters(
+                "my/warehouse/location", "glue_catalog", additionalJobParameters, additionalSparkProperties);
+
+        assertTrue(params.containsKey("--foo"));
+        assertEquals("bar", params.get("--foo"));
+        assertEquals("false", params.get("--enable-metrics"));
+        assertEquals(6, params.get("--conf").split("--conf").length);
+    }
+
+    @Test
+    public void prepareJobParameters1() {
+
+        GlueJobClientWrapper wrapper = new GlueJobClientWrapper();
+
+        List<JobParameters> additionalJobParameters = new ArrayList<>();
+        List<JobParameters> additionalSparkProperties = new ArrayList<>();
+        additionalSparkProperties.add(new JobParameters("spark.foo", "bar"));
+
+        Map<String, String> params0 = wrapper.prepareJobParameters(
+                "my/warehouse/location", "glue_catalog", new ArrayList<>(), new ArrayList<>());
+        Map<String, String> params1 = wrapper.prepareJobParameters(
+                "my/warehouse/location", "glue_catalog", new ArrayList<>(), additionalSparkProperties);
+
+        System.out.println(params1);
+
+        assertEquals(6, params0.get("--conf").split("--conf").length);
+        assertEquals(7, params1.get("--conf").split("--conf").length);
     }
 }

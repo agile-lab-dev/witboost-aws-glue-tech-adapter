@@ -28,8 +28,9 @@ dataProduct:
         numberOfWorkers: 2
         storageAreaId: urn:dmb:cmp:finance:exchange:0:raw-storage
         catalogName: glue_catalog
-        additionalJobParameters: []
-        additionalSparkProperties: []
+        warehouseLocation: some/warehouse/location
+        additionalJobParameters: null
+        additionalSparkProperties: null
       useCaseTemplateId: useCaseTemplateId1
       componentOwner: agilelab
       version: 0.0.0

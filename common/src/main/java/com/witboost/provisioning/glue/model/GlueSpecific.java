@@ -4,6 +4,7 @@ import static io.vavr.control.Either.right;
 
 import com.witboost.provisioning.model.Specific;
 import io.vavr.control.Either;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,14 @@ public class GlueSpecific extends Specific {
 
     @NotBlank
     private String storageAreaId;
+
+    @Valid
+    @NotNull
+    private List<JobParameters> additionalJobParameters;
+
+    @Valid
+    @NotNull
+    private List<JobParameters> additionalSparkProperties;
 
     public WorkerType getWorkerType() {
         return WorkerType.fromValue(workerType);

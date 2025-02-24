@@ -84,4 +84,22 @@ class WorkloadValidationServiceTest {
         String responseContent = result.getResponse().getContentAsString();
         assertTrue(responseContent.contains("warehouseLocation must not be blank"));
     }
+
+    @Test
+    public void validateBadDescriptor3() throws Exception {
+        String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_bad3.yml");
+
+        ProvisioningRequest provisioningRequest =
+                new ProvisioningRequest(DescriptorKind.COMPONENT_DESCRIPTOR, ymlDescriptor, false);
+
+        MvcResult result = mockMvc.perform(post(mockValidateEndpoint)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(provisioningRequest)))
+                .andReturn();
+
+        assertEquals(400, result.getResponse().getStatus());
+        String responseContent = result.getResponse().getContentAsString();
+        assertTrue(responseContent.contains("additionalJobParameters must not be null"));
+        assertTrue(responseContent.contains("additionalSparkProperties must not be null"));
+    }
 }

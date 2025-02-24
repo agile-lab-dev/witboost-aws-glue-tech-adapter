@@ -124,7 +124,9 @@ public class WorkloadProvisionService implements ProvisionService {
                     specific.getExecutionClass(),
                     component.getDescription(),
                     specific.getCatalogName(),
-                    warehouseLocation);
+                    warehouseLocation,
+                    specific.getAdditionalJobParameters(),
+                    specific.getAdditionalSparkProperties());
         } catch (Exception e) {
             return Either.left(new FailedOperation(
                     "Job creation failed",

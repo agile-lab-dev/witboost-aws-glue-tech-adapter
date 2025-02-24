@@ -2,8 +2,7 @@ package com.witboost.provisioning.glue.service.provision;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -40,9 +39,6 @@ import software.amazon.awssdk.services.glue.model.ExecutionClass;
 import software.amazon.awssdk.services.glue.model.GlueException;
 import software.amazon.awssdk.services.glue.model.WorkerType;
 
-/*
- * TODO Review these tests after you have implemented the tech adapter logic
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 class WorkloadProvisionServiceTest {
@@ -116,7 +112,9 @@ class WorkloadProvisionServiceTest {
                         any(ExecutionClass.class),
                         anyString(),
                         anyString(),
-                        anyString());
+                        anyString(),
+                        any(),
+                        any());
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
@@ -147,7 +145,9 @@ class WorkloadProvisionServiceTest {
                         any(ExecutionClass.class),
                         anyString(),
                         anyString(),
-                        anyString());
+                        anyString(),
+                        any(),
+                        any());
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
@@ -224,7 +224,9 @@ class WorkloadProvisionServiceTest {
                         Mockito.any(ExecutionClass.class),
                         anyString(),
                         anyString(),
-                        anyString());
+                        anyString(),
+                        any(),
+                        any());
 
         String ymlDescriptor = ResourceUtils.getContentFromResource("/pr_descriptor_ok0.yml");
         ProvisioningRequest provisioningRequest =
