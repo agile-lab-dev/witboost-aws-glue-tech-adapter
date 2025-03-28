@@ -14,15 +14,11 @@ public class GlueJobUtilsTests {
     void jobNameCreation() {
 
         DataProduct dp = new DataProduct();
-        dp.setName("allcustomers");
-        dp.setDomain("sales");
-        dp.setVersion("1.0.0-SNAPSHOT");
+        Component cp = new Workload();
+        cp.setId("urn:dmb:cmp:mydomain:awesomedp:1:ingestion");
         dp.setEnvironment("dev");
 
-        Component cp = new Workload();
-        cp.setName("ingestion");
-
         String jobName = GlueJobUtils.computeName(dp, cp);
-        assertEquals("job-sales-allcustomers-dev-1-ingestion", jobName);
+        assertEquals("job-mydomain-awesomedp-dev-1-ingestion", jobName);
     }
 }

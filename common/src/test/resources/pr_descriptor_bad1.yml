@@ -14,7 +14,7 @@ dataProduct:
       fullyQualifiedName: gluejob-0
       description: job description
       kind: workload
-      id: urn:dmb:cmp:gluejob-0
+      id: urn:dmb:cmp:finance:testMultiModule:0:gluejob-0
       infrastructureTemplateId: urn:dmb:itm:glue-sp:0
       dependsOn: []
       specific:
@@ -44,4 +44,4 @@ dataProduct:
   id: urn:dmb:dp:finance:testmultimodule:0
   email: john.doe@foobar.it
   informationSLA: null
-componentIdToProvision: urn:dmb:cmp:gluejob-0
+componentIdToProvision: urn:dmb:cmp:finance:testMultiModule:0:gluejob-0

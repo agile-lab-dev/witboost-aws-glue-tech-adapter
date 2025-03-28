@@ -13,13 +13,17 @@ public class GlueJobUtils {
      * @return the name of the job
      */
     public static String computeName(DataProduct dp, Component cp) {
+
+        // Example component id urn:dmb:cmp:domain:dp:0:component
+        String[] idComponents = cp.getId().split(":");
+
         return new StringJoiner("-")
                 .add("job")
-                .add(dp.getDomain())
-                .add(dp.getName())
+                .add(idComponents[3])
+                .add(idComponents[4])
                 .add(dp.getEnvironment())
-                .add(VersionUtils.getMajorVersion(dp.getVersion()))
-                .add(cp.getName())
+                .add(idComponents[5])
+                .add(idComponents[6])
                 .toString();
     }
 }
